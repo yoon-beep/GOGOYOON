@@ -2,20 +2,24 @@
   <div class="notice-page">
     <h2 class="page-title">공지사항</h2>
 
-    <!-- 상단 검색 + 글쓰기 -->
-     <div class="notice-actions">
-        <input
-          v-model="searchText"
-          type="text"
-          placeholder="제목 검색"
-          class="search-input"
-        />
-        <button class="write-button" @click="onClickWrite">
-          글쓰기
-        </button>
-     </div>
+    <!-- 로딩 / 에러 상태 표시 -->
+    <p v-if="loading">불러오는 중...</p>
+    <p v-else-if="errorMessage" style="color: red;">{{ errorMessage }}</p>
 
-     <!-- 공지 리스트 -->
+    <!-- 상단 검색 + 글쓰기 -->
+    <div class="notice-actions">
+      <input
+        v-model="searchText"
+        type="text"
+        placeholder="제목 검색"
+        class="search-input"
+      />
+      <button class="write-button" @click="onClickWrite">
+        글쓰기
+      </button>
+    </div>
+
+    <!-- 공지 리스트 -->
     <table class="notice-table">
       <thead>
         <tr>
@@ -34,82 +38,77 @@
         >
           <td>{{ notice.id }}</td>
           <td class="title-cell">
-              <span v-if="notice.isImportant" class="badge-important">중요</span>
-              {{  notice.title  }}
+            <span v-if="notice.isImportant" class="badge-important">중요</span>
+            {{ notice.title }}
           </td>
           <td>{{ notice.writer }}</td>
           <td>{{ notice.createdAt }}</td>
         </tr>
-    
-   <!-- 데이터 없을ㄷ 때 -->
-      <tr v-if="filteredNotices.length === 0">
-        <td colspan="4" class="empty-row">
-          공지사항이 없습니다
-        </td>
-      </tr>
+
+        <!-- 데이터 없을 때 -->
+        <tr v-if="!loading && !errorMessage && filteredNotices.length === 0">
+          <td colspan="4" class="empty-row">
+            공지사항이 없습니다
+          </td>
+        </tr>
       </tbody>
     </table>
   </div>
 </template>
 
 <script>
+import axios from 'axios'
+
 export default {
   name: 'NoticePage',
-  data() {
+  data () {
     return {
       searchText: '',
-      // 지금은 더미 데이터. 나중에 API 연동으로 바꿀 예정
-      notices: [
-        {
-          id: 3,
-          title: '시스템 점검 안내 (11/30 새벽)',
-          writer: '관리자',
-          createdAt: '2025-11-29',
-          isImportant: true,
-        },
-        {
-          id: 2,
-          title: '연말정산 서류 제출 안내',
-          writer: '총무팀',
-          createdAt: '2025-11-25',
-          isImportant: true,
-        },
-        {
-          id: 1,
-          title: '11월 사내 식단표 안내',
-          writer: '총무팀',
-          createdAt: '2025-11-20',
-          isImportant: false,
-        },
-      ],
+      notices: [],
+      loading: false,
+      errorMessage: '',
     }
   },
+  created () {
+    this.fetchNotices()
+  },
   computed: {
-    //검색어가 있을 경우 제목 기준으로 필터링
-    filteredNotices() {
+    filteredNotices () {
       if (!this.searchText) return this.notices
 
       const keyword = this.searchText.toLowerCase()
       return this.notices.filter(row =>
         row.title.toLowerCase().includes(keyword)
       )
-    }
+    },
   },
   methods: {
-    onClickWrite() {
-      //T0D0: 나중에 글 쓰기 페이지 / 모달로 연결 예정
+    async fetchNotices () {
+      this.loading = true
+      this.errorMessage = ''
+
+      try {
+        const res = await axios.get('http://localhost:3000/api/notices')
+        this.notices = res.data.data
+      } catch (err) {
+        console.error(err)
+        this.errorMessage = '공지사항을 불러오는 데 실패했습니다.'
+      } finally {
+        this.loading = false
+      }
+    },
+    onClickWrite () {
       alert('여기서 글쓰기 화면으로 이동하게 만들거야!')
     },
-    onClickRow(notice) {
-      // TODO: 다음 단계에서 /notice/:id 라우트 만들어서 이동
-      // this.$router.push(`/notice/${notice.id}`)
-      alert(`상세보기로 이동할 자리: [${notice.id}] ${notice.title}`)
-    }
-  }
-} 
+    onClickRow (notice) {
+      alert(`상세보기로 이동할 자리: [${notice.id}] [${notice.title}]`)
+    },
+  },
+}
 </script>
 
 <style scoped>
+/* (스타일은 기존이랑 동일) */
 .notice-page {
   max-width: 900px;
   margin: 0 auto;
