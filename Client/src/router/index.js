@@ -4,6 +4,8 @@ import VueRouter from 'vue-router'
 // 1) 각 페이지 컴포넌트 import
 import MainPage from '@/views/MainPage.vue'
 import NoticePage from '@/views/NoticePage.vue'
+import NoticeDetail from '@/pages/NoticeDetail.vue'
+import NoticeWrite from '@/pages/NoticeWrite.vue'
 import MailPage from '@/views/MailPage.vue'
 import ApprovalPage from '@/views/ApprovalPage.vue'
 import OrgPage from '@/views/OrgPage.vue'
@@ -23,6 +25,17 @@ const routes = [
     path: '/notice',    // http://localhost:8080/notice
     name: 'Notice',
     component: NoticePage,
+  },
+  {
+    path: '/notice/write',
+    name: 'NoticeWrite',
+    component: NoticeWrite,
+  },
+  {
+    path: '/notice/:id',
+    name: 'NoticeDetail',
+    component: NoticeDetail,
+    props: true,  // 나중에 원하면 props 방식도 써볼 수 있음
   },
   {
     path: '/mail',      // http://localhost:8080/mail

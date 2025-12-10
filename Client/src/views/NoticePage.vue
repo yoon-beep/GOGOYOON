@@ -57,20 +57,16 @@
 </template>
 
 <script>
-import axios from 'axios'
+// import axios from 'axios';
+import { dummyNotices } from '@/mock/notices';
 
 export default {
   name: 'NoticePage',
   data () {
     return {
-      searchText: '',
-      notices: [],
-      loading: false,
-      errorMessage: '',
-    }
-  },
-  created () {
-    this.fetchNotices()
+        searchText: '',
+        notices: dummyNotices
+      }
   },
   computed: {
     filteredNotices () {
@@ -80,28 +76,19 @@ export default {
       return this.notices.filter(row =>
         row.title.toLowerCase().includes(keyword)
       )
-    },
+    }
   },
   methods: {
-    async fetchNotices () {
-      this.loading = true
-      this.errorMessage = ''
-
-      try {
-        const res = await axios.get('http://localhost:3000/api/notices')
-        this.notices = res.data.data
-      } catch (err) {
-        console.error(err)
-        this.errorMessage = '공지사항을 불러오는 데 실패했습니다.'
-      } finally {
-        this.loading = false
-      }
-    },
     onClickWrite () {
-      alert('여기서 글쓰기 화면으로 이동하게 만들거야!')
+      // 글쓰기 페이지로 이동
+      this.$router.push({ name: 'NoticeWrite' })
     },
     onClickRow (notice) {
-      alert(`상세보기로 이동할 자리: [${notice.id}] [${notice.title}]`)
+      // 상세 페이지로 이동: /notice/:id
+      this.$router.push({
+        name: 'NoticeDetail',
+        params: { id: notice.id },
+      })
     },
   },
 }
@@ -111,19 +98,24 @@ export default {
 /* (스타일은 기존이랑 동일) */
 .notice-page {
   max-width: 900px;
+  height: 700px;
   margin: 0 auto;
+  border: 1px solid blue;
 }
 
 .page-title {
-  margin: 0 0 16px;
+  margin: 0 0 0px 60px;
   font-size: 20px;
   font-weight: 600;
+  /* border: 1px solid blue; */
 }
 
 .notice-actions {
   display: flex;
   gap: 8px;
+  width: 90%;
   margin-bottom: 12px;
+  margin: 0 auto 12px;
 }
 
 .search-input {
@@ -148,20 +140,27 @@ export default {
 }
 
 .notice-table {
-  width: 100%;
-  border-collapse: collapse;
+  width: 90%;
+  margin: 0px auto;
+  border-collapse: separate;
   font-size: 14px;
+  border: 1px solid red;
 }
 
 .notice-table th,
 .notice-table td {
   border: 1px solid #ddd;
   padding: 8px;
+  text-align: center;
 }
 
 .notice-table thead {
   background: #f5f5f5;
 }
+
+/* .notice-table tbody {
+  text-align: center;
+} */
 
 .notice-table tbody tr:hover {
   background: #f9fafb;
@@ -186,5 +185,5 @@ export default {
 .empty-row {
   text-align: center;
   color: #888;
-}
+} 
 </style>
