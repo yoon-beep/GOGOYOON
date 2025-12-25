@@ -3,8 +3,10 @@
     <h2 class="page-title">공지사항</h2>
 
     <!-- 로딩 / 에러 상태 표시 -->
-    <p v-if="loading">불러오는 중...</p>
-    <p v-else-if="errorMessage" style="color: red;">{{ errorMessage }}</p>
+    <div v-if="loading">불러오는 중...</div>
+    <div v-else-if="errorMessage" style="color: red;">
+      {{ errorMessage }}
+    </div>
 
     <!-- 상단 검색 + 글쓰기 -->
     <div class="notice-actions">
@@ -14,13 +16,24 @@
         placeholder="제목 검색"
         class="search-input"
       />
-      <button class="write-button" @click="onClickWrite">
+      <button 
+        v-if="isLoggedIn"
+        class="write-button" 
+        @click="onClickWrite"
+      >
         글쓰기
       </button>
     </div>
 
     <!-- 공지 리스트 -->
     <table class="notice-table">
+      <!-- ✅ 여기가 추가된 부분 -->
+      <colgroup>
+        <col style="width: 50px;">   <!-- 번호 -->
+        <col>                        <!-- 제목 (나머지 공간 꽉 차게) -->
+        <col style="width: 100px;">  <!-- 작성자 -->
+        <col style="width: 120px;">  <!-- 등록일 -->
+      </colgroup>
       <thead>
         <tr>
           <th style="width: 70px;">번호</th>
@@ -53,21 +66,56 @@
         </tr>
       </tbody>
     </table>
+    <!-- ✅ 페이지네이션 -->
+      <div class="pagination">
+        <button
+          @click="changePage(page - 1)"
+          :disabled="page === 1"
+        >
+          이전
+        </button>
+
+        <button
+          v-for="p in lastPage"
+          :key="p"
+          @click="changePage(p)"
+          :class="['page-btn', { active: p === page }]"
+        >
+          {{ p }}
+        </button>
+
+        <button
+          @click="changePage(page + 1)"
+          :disabled="page === lastPage"
+        >
+          다음
+        </button>
+      </div>
   </div>
 </template>
 
 <script>
 // import axios from 'axios';
-import { dummyNotices } from '@/mock/notices';
+import apiClient from '@/api/apiClient'; // 새로 추가
 
 export default {
   name: 'NoticePage',
   data () {
     return {
-        searchText: '',
-        notices: dummyNotices
-      }
+      searchText: '',
+      loading: false,
+      errorMessage: '',
+      notices: [],    // 현재 페이지의 공지 목록
+      // ✅ 페이지네이션용 상태
+      page: 1,       // 현재 페이지
+      limit: 10,     // 한 페이지에 몇 개
+      total: 0,      // 전체 공지 개수 (서버에서 받아옴)
+    }
   },
+  created () {
+    // 컴포넌트가 만들어질 때 목록을 한 번 불러온다
+    this.fetchNotices(1)
+  }, 
   computed: {
     filteredNotices () {
       if (!this.searchText) return this.notices
@@ -76,9 +124,49 @@ export default {
       return this.notices.filter(row =>
         row.title.toLowerCase().includes(keyword)
       )
-    }
+    },
+    isLoggedIn () {
+      return !!sessionStorage.getItem('gogoyoonUser')
+    },
+    // ✅ 마지막 페이지 번호
+    lastPage () {
+      if (!this.total) return 1
+      return Math.max(1, Math.ceil(this.total / this.limit))
+    },
   },
   methods: {
+    async fetchNotices (page = 1) {
+      try {
+        this.loading = true
+        this.errorMessage = ''
+        this.page = page
+
+        // GET http://localhost:3000/api/notices
+        const res = await apiClient.get('/notices',{
+          params:{
+            page: this.page,
+            limit: this.limit
+          }
+        })
+
+        if (res.data && res.data.ok) {
+          this.notices = res.data.data
+          this.total = res.data.total
+        } else {
+          this.errorMessage = res.data.message || '공지 목록을 가져오지 못했습니다.'
+        }
+      } catch (err) {
+        console.error(err)
+        this.errorMessage = '서버 통신 중 오류가 발생했습니다.'
+      } finally {
+        this.loading = false
+      }
+    },
+    // ✅ 페이지 이동
+    changePage (page) {
+      if (page < 1 || page > this.lastPage) return
+      this.fetchNotices(page)
+    },
     onClickWrite () {
       // 글쓰기 페이지로 이동
       this.$router.push({ name: 'NoticeWrite' })
@@ -89,8 +177,8 @@ export default {
         name: 'NoticeDetail',
         params: { id: notice.id },
       })
-    },
-  },
+    }
+  }
 }
 </script>
 
@@ -145,6 +233,7 @@ export default {
   border-collapse: separate;
   font-size: 14px;
   border: 1px solid red;
+  table-layout: fixed; 
 }
 
 .notice-table th,
@@ -186,4 +275,31 @@ export default {
   text-align: center;
   color: #888;
 } 
+.pagination {
+  margin-top: 12px;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+}
+
+.pagination button {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-btn.active {
+  background: #007bff;
+  color: #fff;
+  border-color: #007bff;
+}
 </style>

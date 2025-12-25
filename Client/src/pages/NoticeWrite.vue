@@ -48,7 +48,7 @@
 
       <!-- 버튼 -->
       <div class="form-actions">
-        <button type="submit">작성 완료 (더미)</button>
+        <button type="submit">작성 완료</button>
         <button type="button" @click="goBack">취소</button>
       </div>
     </form>
@@ -56,6 +56,8 @@
 </template>
 
 <script>
+import apiClient from '@/api/apiClient'  // ✅ axios 인스턴스
+
 export default {
   name: 'NoticeWrite',
   data () {
@@ -66,22 +68,45 @@ export default {
         isImportant: false,
         content: '',
       },
+      loading: false,
+      errorMessage: '',
     }
   },
   methods: {
-    onSubmit () {
-      // 아직 서버랑 안 붙었으니까, 입력값만 확인해보자
-      console.log('작성할 데이터:', this.form)
-      alert(
-        `나중에 서버로 전송할 데이터야!\n\n` +
-        `제목: ${this.form.title}\n` +
-        `작성자: ${this.form.writer}\n` +
-        `중요공지: ${this.form.isImportant ? '예' : '아니오'}\n` +
-        `내용: ${this.form.content.substring(0, 20)}...`
-      )
+    async onSubmit () {
+      // 이 함수에서 이제 실제 서버로 전송할 거야
+      if (!this.form.title || !this.form.content) {
+        alert('제목과 내용을 입력해주세요.')
+        return
+      }
 
-      // 나중에는 여기서 axios.post 해서 서버에 저장하고 /notice로 이동
-      this.$router.push('/notice')
+      try {
+        this.loading = true
+        this.errorMessage = ''
+
+        const payload = {
+          title: this.form.title,
+          content: this.form.content,
+          writer: this.form.writer,
+          isImportant: this.form.isImportant,
+        }
+
+        // 📌 POST http://localhost:3000/api/notices
+        const res = await apiClient.post('/notices', payload)
+
+        if (res.data && res.data.ok) {
+          alert('공지사항이 등록되었습니다!')
+          // 성공하면 공지 목록으로 이동
+          this.$router.push('/notice')
+        } else {
+          this.errorMessage = res.data.message || '등록에 실패했습니다.'
+        }
+      } catch (err) {
+        // console.error(err)
+        this.errorMessage = '서버 통신 중 오류가 발생했습니다.'
+      } finally {
+        this.loading = false
+      }
     },
     goBack () {
       this.$router.push('/notice')

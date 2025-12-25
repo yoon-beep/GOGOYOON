@@ -23,7 +23,8 @@
       <!-- 버튼 영역 -->
       <div class="detail-actions">
         <button @click="goBack">목록으로</button>
-        <button @click="editNotice">수정(예정)</button>
+        <button @click="editNotice">수정</button>
+        <button @click="deleteNotice">삭제</button>
       </div>
     </div>
 
@@ -35,32 +36,85 @@
 </template>
 
 <script>
-import { dummyNotices } from '@/mock/notices'
+import apiClient from '@/api/apiClient'
 
 export default {
   name: 'NoticeDetail',
   data () {
     return {
       notice: null,
+      loading: false,
+      errorMessage: '',
     }
   },
   created () {
-    // URL에서 /notice/:id 중 id 값 가져오기
-    const id = Number(this.$route.params.id)
-
-    // 더미 데이터에서 해당 id 찾기
-    this.notice = dummyNotices.find(row => row.id === id) || null
+    this.fetchNotice()
   },
   methods: {
-    goBack () {
-      this.$router.push('/notice')
+    async fetchNotice () {
+      const id = this.$route.params.id
+
+      try {
+        this.loading = true
+        this.errorMessage = ''
+
+        // GET http://localhost:3000/api/notices/:id
+        const res = await apiClient.get(`/notices/${id}`)
+
+        if (res.data && res.data.ok) {
+          this.notice = res.data.data
+        } else {
+          this.errorMessage = res.data.message || '공지사항을 찾을 수 없습니다.'
+        }
+      } catch (err) {
+        // console.error(err)
+        this.errorMessage = '공지사항 조회 중 오류가 발생했습니다.'
+      } finally {
+        this.loading = false
+      }
     },
     editNotice () {
-      alert('나중에 수정 페이지로 이동하게 만들 거야!')
+      const id = this.$route.params.id || (this.notice && this.notice.id)
+      this.$router.push({
+        name: 'NoticeEdit',
+        params: { id },
+      })
+    },
+    async deleteNotice () {
+      const id = this.$route.params.id || (this.notice && this.notice.id)
+
+      // 1) 한번 더 사용자에게 확인
+      const ok = window.confirm('정말 이 공지사항을 삭제할까요?')
+      if (!ok) return
+
+      try {
+        this.loading = true
+        this.errorMessage = ''
+
+        // 2) DELETE /api/notices/:id 요청
+        const res = await apiClient.delete(`/notices/${id}`)
+
+        if (res.data && res.data.ok) {
+          alert('공지사항이 삭제되었습니다.')
+          // 3) 삭제 후 목록으로 이동
+          this.$router.push('/notice')
+        } else {
+          this.errorMessage = res.data.message || '삭제에 실패했습니다.'
+        }
+      } catch (err) {
+        // console.error(err)
+        this.errorMessage = '공지사항 삭제 중 오류가 발생했습니다.'
+      } finally {
+        this.loading = false
+      }
+    },
+    goBack () {
+      this.$router.push('/notice')
     },
   },
 }
 </script>
+
 
 <style scoped>
 .notice-detail {
